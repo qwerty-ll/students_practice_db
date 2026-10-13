@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict EtcSEyKvMpmFMrgCfbVijtMOP50zS1nnnRfesuWeIbl8t3FTRDaLIHJ7MaENnIs
+\restrict 5UdvvNedk5gm7m1A9DL4UdfX7qdgXYupyuc4KxZUVVVse9Ba8ZLzA7OFkIK4vuk
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -42,6 +42,7 @@ ALTER TABLE IF EXISTS ONLY public."Договор" DROP CONSTRAINT IF EXISTS "FK
 ALTER TABLE IF EXISTS ONLY public."Договор" DROP CONSTRAINT IF EXISTS "FK_Договор_Статус_договора";
 ALTER TABLE IF EXISTS ONLY public."Договор" DROP CONSTRAINT IF EXISTS "FK_Договор_Организация_партнер";
 ALTER TABLE IF EXISTS ONLY public."Группа" DROP CONSTRAINT IF EXISTS "FK_Группа_Направление_подготовки";
+ALTER TABLE IF EXISTS ONLY public."Числа" DROP CONSTRAINT IF EXISTS "Числа_pkey";
 ALTER TABLE IF EXISTS ONLY public."Тип_компетенции" DROP CONSTRAINT IF EXISTS "Тип_компетенции_pkey";
 ALTER TABLE IF EXISTS ONLY public."Тип_договора" DROP CONSTRAINT IF EXISTS "Тип_договора_pkey";
 ALTER TABLE IF EXISTS ONLY public."Студент" DROP CONSTRAINT IF EXISTS "Студент_pkey";
@@ -66,6 +67,7 @@ ALTER TABLE IF EXISTS ONLY public."Договор" DROP CONSTRAINT IF EXISTS "Д
 ALTER TABLE IF EXISTS ONLY public."Группа" DROP CONSTRAINT IF EXISTS "Группа_pkey";
 ALTER TABLE IF EXISTS ONLY public."Вид_практики" DROP CONSTRAINT IF EXISTS "Вид_практики_pkey";
 ALTER TABLE IF EXISTS ONLY public."Test" DROP CONSTRAINT IF EXISTS "Test_pkey";
+DROP TABLE IF EXISTS public."Числа";
 DROP TABLE IF EXISTS public."Тип_компетенции";
 DROP TABLE IF EXISTS public."Тип_договора";
 DROP TABLE IF EXISTS public."Студент";
@@ -671,6 +673,18 @@ ALTER TABLE public."Тип_компетенции" ALTER COLUMN "Id_типа_к�
 
 
 --
+-- Name: Числа; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Числа" (
+    "Id_числа" integer NOT NULL,
+    "Значение" numeric
+);
+
+
+ALTER TABLE public."Числа" OWNER TO postgres;
+
+--
 -- Data for Name: Test; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -740,6 +754,7 @@ INSERT INTO public."Должность_руководителя" VALUES (2, 'П�
 INSERT INTO public."Должность_руководителя" VALUES (3, 'Старший преподаватель                                                                               ');
 INSERT INTO public."Должность_руководителя" VALUES (4, 'Заведующий кафедрой                                                                                 ');
 INSERT INTO public."Должность_руководителя" VALUES (5, 'Ассистент                                                                                           ');
+INSERT INTO public."Должность_руководителя" VALUES (6, 'Заведующий кафедрой                                                                                 ');
 
 
 --
@@ -1276,6 +1291,7 @@ INSERT INTO public."Организация_партнер" VALUES ('ООО Юв�
 INSERT INTO public."Организация_партнер" VALUES ('ООО Девелоника', 'г. Кострома, ул. Ленина, д. 20, оф. 301', '7722754321', '440102001', '+74942654321', 'Кузнецов', 'Артем', 'Дмитриевич', 'постоянный');
 INSERT INTO public."Организация_партнер" VALUES ('АО СКБТ', 'г. Кострома, ул. Галичская, д. 128', '4401005577', '440101001', '+74942551122', 'Федоров', 'Михаил', 'Александрович', 'постоянный');
 INSERT INTO public."Организация_партнер" VALUES ('ПАО Сбербанк', 'г. Кострома, ул. Никитская, д. 33', '7707083893', '440102001', '+74942398000', 'Белов', 'Сергей', 'Николаевич', 'постоянный');
+INSERT INTO public."Организация_партнер" VALUES ('ААА', 'ААА', '3', '33', '3', 'В', 'В', 'В', 'В');
 
 
 --
@@ -2041,6 +2057,8 @@ INSERT INTO public."Студент" VALUES (273, 'Федоров', 'Олег', '
 INSERT INTO public."Студент" VALUES (274, 'Никитин', 'Егор', 'Иванович', '2008-08-20', '25-ИБбо-1');
 INSERT INTO public."Студент" VALUES (275, 'Лебедев', 'Александр', 'Николаевич', '2007-03-18', '25-ИБбо-1');
 INSERT INTO public."Студент" VALUES (276, 'Алексеева', 'Милана', 'Романовна', '2007-05-08', '25-ИБбо-1');
+INSERT INTO public."Студент" VALUES (277, 'Иванов', 'Иван', 'Иванович', '2005-05-05', '24-ИСбо-1');
+INSERT INTO public."Студент" VALUES (278, 'пропоп', 'ппппп', 'ппппп', '2008-05-05', '24-ИСбо-1');
 
 
 --
@@ -2058,6 +2076,26 @@ INSERT INTO public."Тип_договора" VALUES (2, 'о сотрудниче
 INSERT INTO public."Тип_компетенции" VALUES (1, 'Универсальная');
 INSERT INTO public."Тип_компетенции" VALUES (2, 'Общепрофессиональная');
 INSERT INTO public."Тип_компетенции" VALUES (3, 'Профессиональная');
+
+
+--
+-- Data for Name: Числа; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public."Числа" VALUES (14, NULL);
+INSERT INTO public."Числа" VALUES (13, NULL);
+INSERT INTO public."Числа" VALUES (12, NULL);
+INSERT INTO public."Числа" VALUES (11, NULL);
+INSERT INTO public."Числа" VALUES (10, NULL);
+INSERT INTO public."Числа" VALUES (9, NULL);
+INSERT INTO public."Числа" VALUES (8, NULL);
+INSERT INTO public."Числа" VALUES (7, NULL);
+INSERT INTO public."Числа" VALUES (6, NULL);
+INSERT INTO public."Числа" VALUES (5, NULL);
+INSERT INTO public."Числа" VALUES (4, NULL);
+INSERT INTO public."Числа" VALUES (3, NULL);
+INSERT INTO public."Числа" VALUES (2, NULL);
+INSERT INTO public."Числа" VALUES (1, NULL);
 
 
 --
@@ -2374,6 +2412,14 @@ ALTER TABLE ONLY public."Тип_компетенции"
 
 
 --
+-- Name: Числа Числа_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Числа"
+    ADD CONSTRAINT "Числа_pkey" PRIMARY KEY ("Id_числа");
+
+
+--
 -- Name: Группа FK_Группа_Направление_подготовки; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2569,5 +2615,5 @@ ALTER TABLE ONLY public."Студент"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict EtcSEyKvMpmFMrgCfbVijtMOP50zS1nnnRfesuWeIbl8t3FTRDaLIHJ7MaENnIs
+\unrestrict 5UdvvNedk5gm7m1A9DL4UdfX7qdgXYupyuc4KxZUVVVse9Ba8ZLzA7OFkIK4vuk
 
