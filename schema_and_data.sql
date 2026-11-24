@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5UdvvNedk5gm7m1A9DL4UdfX7qdgXYupyuc4KxZUVVVse9Ba8ZLzA7OFkIK4vuk
+\restrict XinE0wFiv1F1PhlvmchhC6MOUburst9Md7nLc1EBKgbEcByedgqnK9uPdzz7ETb
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -18,6 +18,7 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY public."Отзыв_о_практике" DROP CONSTRAINT IF EXISTS "Отзыв_о_практик_Id_практики_студ_fkey";
 ALTER TABLE IF EXISTS ONLY public."Студент" DROP CONSTRAINT IF EXISTS "FK_Студент_Группа";
 ALTER TABLE IF EXISTS ONLY public."Руководитель_от_университета" DROP CONSTRAINT IF EXISTS "FK_Руководитель_от_университета_До";
 ALTER TABLE IF EXISTS ONLY public."Результат" DROP CONSTRAINT IF EXISTS "FK_Результат_Практика_студента";
@@ -54,6 +55,8 @@ ALTER TABLE IF EXISTS ONLY public."Результат" DROP CONSTRAINT IF EXISTS
 ALTER TABLE IF EXISTS ONLY public."Практика_студента" DROP CONSTRAINT IF EXISTS "Практика_студента_pkey";
 ALTER TABLE IF EXISTS ONLY public."Практика" DROP CONSTRAINT IF EXISTS "Практика_pkey";
 ALTER TABLE IF EXISTS ONLY public."Оценка_выполнения" DROP CONSTRAINT IF EXISTS "Оценка_выполнения_pkey";
+ALTER TABLE IF EXISTS ONLY public."Отзыв_о_практике" DROP CONSTRAINT IF EXISTS "Отзыв_о_практике_pkey";
+ALTER TABLE IF EXISTS ONLY public."Отзыв_о_практике" DROP CONSTRAINT IF EXISTS "Отзыв_о_практик_Id_практики_студ_key";
 ALTER TABLE IF EXISTS ONLY public."Организация_партнер" DROP CONSTRAINT IF EXISTS "Организация_партнер_pkey";
 ALTER TABLE IF EXISTS ONLY public."Направление_подготовки" DROP CONSTRAINT IF EXISTS "Направление_подготовки_pkey";
 ALTER TABLE IF EXISTS ONLY public."Компетенция" DROP CONSTRAINT IF EXISTS "Компетенция_pkey";
@@ -70,17 +73,20 @@ ALTER TABLE IF EXISTS ONLY public."Test" DROP CONSTRAINT IF EXISTS "Test_pkey";
 DROP TABLE IF EXISTS public."Числа";
 DROP TABLE IF EXISTS public."Тип_компетенции";
 DROP TABLE IF EXISTS public."Тип_договора";
-DROP TABLE IF EXISTS public."Студент";
 DROP TABLE IF EXISTS public."Статус_заявки";
 DROP TABLE IF EXISTS public."Статус_задания";
 DROP TABLE IF EXISTS public."Статус_договора";
 DROP TABLE IF EXISTS public."Руководитель_от_университета";
 DROP TABLE IF EXISTS public."Результат";
+DROP VIEW IF EXISTS public."Практики_по_организациям";
+DROP TABLE IF EXISTS public."Студент";
 DROP TABLE IF EXISTS public."Практика_студента";
 DROP TABLE IF EXISTS public."Практика";
 DROP TABLE IF EXISTS public."Оценка_выполнения";
+DROP TABLE IF EXISTS public."Отзыв_о_практике";
 DROP TABLE IF EXISTS public."Организация_партнер";
 DROP TABLE IF EXISTS public."Направление_подготовки";
+DROP VIEW IF EXISTS public."Места_текущего_года";
 DROP TABLE IF EXISTS public."Компетенция";
 DROP TABLE IF EXISTS public."Заявка_на_практику";
 DROP TABLE IF EXISTS public."Задание";
@@ -92,6 +98,21 @@ DROP TABLE IF EXISTS public."Договор";
 DROP TABLE IF EXISTS public."Группа";
 DROP TABLE IF EXISTS public."Вид_практики";
 DROP TABLE IF EXISTS public."Test";
+DROP FUNCTION IF EXISTS public."Текущий_учебный_год"();
+--
+-- Name: Текущий_учебный_год(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public."Текущий_учебный_год"() RETURNS character varying
+    LANGUAGE sql STABLE
+    AS $$
+    SELECT y || '/' || (y + 1)
+    FROM (SELECT extract(year FROM CURRENT_DATE - interval '8 months')::int AS y) AS t
+$$;
+
+
+ALTER FUNCTION public."Текущий_учебный_год"() OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -351,6 +372,28 @@ CREATE TABLE public."Компетенция" (
 ALTER TABLE public."Компетенция" OWNER TO postgres;
 
 --
+-- Name: Места_текущего_года; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public."Места_текущего_года" AS
+ SELECT "Id_доступного_места",
+    "Наименование_организации",
+    "Id_должности",
+    "Id_практики",
+    "Описание_задач",
+    "Требуемый_профиль",
+    "Кол-во_мест",
+    "Дата_начала_подачи_заявок",
+    "Дата_окончания_подачи_заявок",
+    "Учебный_год"
+   FROM public."Доступные_места"
+  WHERE (("Учебный_год")::text = (public."Текущий_учебный_год"())::text)
+  WITH CASCADED CHECK OPTION;
+
+
+ALTER VIEW public."Места_текущего_года" OWNER TO postgres;
+
+--
 -- Name: Направление_подготовки; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -380,6 +423,36 @@ CREATE TABLE public."Организация_партнер" (
 
 
 ALTER TABLE public."Организация_партнер" OWNER TO postgres;
+
+--
+-- Name: Отзыв_о_практике; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Отзыв_о_практике" (
+    "Id_отзыва" integer NOT NULL,
+    "Id_практики_студента" integer NOT NULL,
+    "Балл" smallint NOT NULL,
+    "Текст" character varying,
+    "Дата_отзыва" date DEFAULT CURRENT_DATE NOT NULL,
+    CONSTRAINT "CK_Отзыв_Балл" CHECK ((("Балл" >= 1) AND ("Балл" <= 5)))
+);
+
+
+ALTER TABLE public."Отзыв_о_практике" OWNER TO postgres;
+
+--
+-- Name: Отзыв_о_практике_Id_отзыва_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."Отзыв_о_практике" ALTER COLUMN "Id_отзыва" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public."Отзыв_о_практике_Id_отзыва_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
 
 --
 -- Name: Оценка_выполнения; Type: TABLE; Schema: public; Owner: postgres
@@ -454,6 +527,53 @@ ALTER TABLE public."Практика_студента" ALTER COLUMN "Id_прак
     CACHE 1
 );
 
+
+--
+-- Name: Студент; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Студент" (
+    "Id_студента" integer NOT NULL,
+    "Фамилия" character varying(50) NOT NULL,
+    "Имя" character varying(50) NOT NULL,
+    "Отчество" character varying(50),
+    "Дата_рождения" date NOT NULL,
+    "Номер_группы" character varying(20) NOT NULL
+);
+
+
+ALTER TABLE public."Студент" OWNER TO postgres;
+
+--
+-- Name: Практики_по_организациям; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public."Практики_по_организациям" AS
+ SELECT "Наименование_организации" AS "Организация",
+    count(DISTINCT "Код_направления") AS "Кол-во_направлений",
+    sum("Кол-во_мест") FILTER (WHERE "Первая_строка_места") AS "Всего_мест",
+    round(avg("Балл"), 2) AS "Удовлетворённость",
+        CASE
+            WHEN (count("Id_практики_студента") >= sum("Кол-во_мест") FILTER (WHERE "Первая_строка_места")) THEN 'Да'::text
+            ELSE 'Нет'::text
+        END AS "Квота_использована"
+   FROM ( SELECT dm."Наименование_организации",
+            dm."Кол-во_мест",
+            ps."Id_практики_студента",
+            g."Код_направления",
+            o."Балл",
+            (row_number() OVER (PARTITION BY dm."Id_доступного_места") = 1) AS "Первая_строка_места"
+           FROM ((public."Доступные_места" dm
+             LEFT JOIN (((public."Заявка_на_практику" z
+             JOIN public."Практика_студента" ps ON ((ps."Id_заявки" = z."Id_заявки")))
+             JOIN public."Студент" s ON ((s."Id_студента" = z."Id_студента")))
+             JOIN public."Группа" g ON (((g."Номер_группы")::text = (s."Номер_группы")::text))) ON ((z."Id_доступного_места" = dm."Id_доступного_места")))
+             LEFT JOIN public."Отзыв_о_практике" o ON ((o."Id_практики_студента" = ps."Id_практики_студента")))
+          WHERE ((dm."Учебный_год")::text = (public."Текущий_учебный_год"())::text)) t
+  GROUP BY "Наименование_организации";
+
+
+ALTER VIEW public."Практики_по_организациям" OWNER TO postgres;
 
 --
 -- Name: Результат; Type: TABLE; Schema: public; Owner: postgres
@@ -589,22 +709,6 @@ ALTER TABLE public."Статус_заявки" ALTER COLUMN "Id_статуса_�
     CACHE 1
 );
 
-
---
--- Name: Студент; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public."Студент" (
-    "Id_студента" integer NOT NULL,
-    "Фамилия" character varying(50) NOT NULL,
-    "Имя" character varying(50) NOT NULL,
-    "Отчество" character varying(50),
-    "Дата_рождения" date NOT NULL,
-    "Номер_группы" character varying(20) NOT NULL
-);
-
-
-ALTER TABLE public."Студент" OWNER TO postgres;
 
 --
 -- Name: Студент_Id_студента_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -786,6 +890,12 @@ INSERT INTO public."Доступные_места" VALUES (22, 'Алгоритм
 INSERT INTO public."Доступные_места" VALUES (23, 'Анализ защищенности инфраструктуры', 15, '2026-03-01', '2026-05-15', 'Информационная безопасность', '2025/2026', 5, 'ПАО Сбербанк', 5);
 INSERT INTO public."Доступные_места" VALUES (24, 'Защита облачных платформ и сервисов', 15, '2026-03-01', '2026-05-15', 'Информационная безопасность', '2025/2026', 5, 'ООО Тензор', 5);
 INSERT INTO public."Доступные_места" VALUES (25, 'Информационная безопасность АСУ ТП', 10, '2026-03-01', '2026-05-15', 'Информационная безопасность', '2025/2026', 5, 'АО СКБТ', 5);
+INSERT INTO public."Доступные_места" VALUES (26, 'Информационная безопасность АСУ ТП', 10, '2027-03-01', '2027-05-15', 'Информационная безопасность', '2026/2027', 7, 'сбер', 4);
+INSERT INTO public."Доступные_места" VALUES (27, 'Разработка бэкенда на Python', 3, '2026-09-15', '2026-10-15', 'Разработка ПО', '2026/2027', 1, 'ООО Тензор', 2);
+INSERT INTO public."Доступные_места" VALUES (28, 'Тестирование веб-сервисов', 2, '2026-09-15', '2026-10-15', 'Информационная безопасность', '2026/2027', 4, 'ООО Тензор', 6);
+INSERT INTO public."Доступные_места" VALUES (29, 'Анализ данных продаж', 4, '2026-09-20', '2026-10-20', 'Анализ данных', '2026/2027', 8, 'АО СКБТ', 2);
+INSERT INTO public."Доступные_места" VALUES (30, 'Аудит защищённости сайта', 1, '2026-09-20', '2026-10-20', 'Информационная безопасность', '2026/2027', 5, 'ООО Девелоника', 6);
+INSERT INTO public."Доступные_места" VALUES (31, 'Сопровождение банковских БД', 2, '2026-09-25', '2026-10-25', 'Базы данных', '2026/2027', 2, 'ПАО Сбербанк', 4);
 
 
 --
@@ -1254,6 +1364,17 @@ INSERT INTO public."Заявка_на_практику" VALUES (272, '2026-09-10
 INSERT INTO public."Заявка_на_практику" VALUES (273, '2026-09-10', 'Кандидатура согласована с предприятием', 3, 25, 164);
 INSERT INTO public."Заявка_на_практику" VALUES (274, '2026-09-10', 'Резюме передано руководителю направления', 2, 5, 165);
 INSERT INTO public."Заявка_на_практику" VALUES (275, '2026-09-10', 'Кандидатура согласована с предприятием', 3, 25, 166);
+INSERT INTO public."Заявка_на_практику" VALUES (276, '2026-10-01', NULL, 3, 27, 5);
+INSERT INTO public."Заявка_на_практику" VALUES (277, '2026-10-01', NULL, 3, 27, 6);
+INSERT INTO public."Заявка_на_практику" VALUES (278, '2026-10-01', NULL, 3, 27, 7);
+INSERT INTO public."Заявка_на_практику" VALUES (279, '2026-10-01', NULL, 3, 28, 145);
+INSERT INTO public."Заявка_на_практику" VALUES (280, '2026-10-01', NULL, 3, 28, 146);
+INSERT INTO public."Заявка_на_практику" VALUES (281, '2026-10-01', NULL, 3, 29, 8);
+INSERT INTO public."Заявка_на_практику" VALUES (282, '2026-10-01', NULL, 3, 29, 9);
+INSERT INTO public."Заявка_на_практику" VALUES (283, '2026-10-01', NULL, 3, 30, 147);
+INSERT INTO public."Заявка_на_практику" VALUES (284, '2026-10-01', NULL, 3, 26, 120);
+INSERT INTO public."Заявка_на_практику" VALUES (285, '2026-10-01', NULL, 3, 26, 121);
+INSERT INTO public."Заявка_на_практику" VALUES (286, '2026-10-01', NULL, 3, 26, 122);
 
 
 --
@@ -1292,6 +1413,138 @@ INSERT INTO public."Организация_партнер" VALUES ('ООО Де�
 INSERT INTO public."Организация_партнер" VALUES ('АО СКБТ', 'г. Кострома, ул. Галичская, д. 128', '4401005577', '440101001', '+74942551122', 'Федоров', 'Михаил', 'Александрович', 'постоянный');
 INSERT INTO public."Организация_партнер" VALUES ('ПАО Сбербанк', 'г. Кострома, ул. Никитская, д. 33', '7707083893', '440102001', '+74942398000', 'Белов', 'Сергей', 'Николаевич', 'постоянный');
 INSERT INTO public."Организация_партнер" VALUES ('ААА', 'ААА', '3', '33', '3', 'В', 'В', 'В', 'В');
+INSERT INTO public."Организация_партнер" VALUES ('сбер', 'кострома', '7707083891', '440102002', '+74942398001', 'у', 'у', 'у', 'постоянный');
+
+
+--
+-- Data for Name: Отзыв_о_практике; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public."Отзыв_о_практике" VALUES (1, 3, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (2, 7, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (3, 12, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (4, 1, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (5, 2, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (6, 4, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (7, 5, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (8, 6, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (9, 8, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (10, 9, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (11, 10, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (12, 11, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (13, 13, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (14, 14, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (15, 15, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (16, 16, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (17, 17, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (18, 18, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (19, 19, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (20, 20, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (21, 21, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (22, 22, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (23, 23, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (24, 24, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (25, 25, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (26, 26, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (27, 27, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (28, 28, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (29, 29, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (30, 30, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (31, 31, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (32, 32, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (33, 33, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (34, 34, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (35, 35, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (36, 36, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (37, 37, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (38, 38, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (39, 39, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (40, 40, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (41, 41, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (42, 42, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (43, 43, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (44, 44, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (45, 45, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (46, 46, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (47, 47, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (48, 48, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (49, 49, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (50, 50, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (51, 51, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (52, 52, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (53, 53, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (54, 54, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (55, 55, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (56, 56, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (57, 57, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (58, 58, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (59, 59, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (60, 60, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (61, 61, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (62, 62, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (63, 63, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (64, 64, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (65, 65, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (66, 66, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (67, 67, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (68, 68, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (69, 69, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (70, 70, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (71, 71, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (72, 72, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (73, 73, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (74, 74, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (75, 75, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (76, 76, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (77, 77, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (78, 78, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (79, 79, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (80, 80, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (81, 81, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (82, 82, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (83, 83, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (84, 84, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (85, 85, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (86, 86, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (87, 87, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (88, 88, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (89, 89, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (90, 90, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (91, 91, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (92, 92, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (93, 93, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (94, 94, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (95, 95, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (96, 96, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (97, 97, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (98, 98, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (99, 99, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (100, 100, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (101, 102, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (102, 103, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (103, 104, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (104, 105, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (105, 106, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (106, 107, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (107, 108, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (108, 109, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (109, 110, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (110, 111, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (111, 112, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (112, 113, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (113, 114, 3, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (114, 115, 4, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (115, 101, 5, 'Отзыв по итогам практики', '2026-07-31');
+INSERT INTO public."Отзыв_о_практике" VALUES (116, 116, 5, 'Интересные задачи, сильная команда', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (117, 117, 5, 'Всё понравилось', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (118, 118, 4, 'Хорошо, но мало времени', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (119, 119, 4, 'Полезный опыт тестирования', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (120, 120, 3, 'Задачи однообразные', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (121, 121, 2, 'Руководитель редко выходил на связь', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (122, 123, 5, 'Отличная практика', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (123, 124, 4, 'Хорошая организация', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (124, 125, 3, 'Нормально', '2026-11-10');
+INSERT INTO public."Отзыв_о_практике" VALUES (125, 126, 4, 'Узнал много нового', '2026-11-10');
 
 
 --
@@ -1602,6 +1855,17 @@ INSERT INTO public."Практика_студента" VALUES (113, '06.07.2026 
 INSERT INTO public."Практика_студента" VALUES (114, '01.07.2026 - 14.07.2026', 'г. Кострома, ул. Ленина, 10', 'Громов', 'Игорь', 'Олегович', 10, 114);
 INSERT INTO public."Практика_студента" VALUES (115, '13.07.2026 - 26.07.2026', 'г. Кострома, ул. Ленина, 10', 'Громов', 'Игорь', 'Олегович', 17, 115);
 INSERT INTO public."Практика_студента" VALUES (101, '01.07.2026 - 14.07.2026', 'г. Кострома, ул. Никитская, д. 33', '', 'Сергей', 'Николаевич', 9, 101);
+INSERT INTO public."Практика_студента" VALUES (116, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 7, 276);
+INSERT INTO public."Практика_студента" VALUES (117, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 8, 277);
+INSERT INTO public."Практика_студента" VALUES (118, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 9, 278);
+INSERT INTO public."Практика_студента" VALUES (119, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 10, 279);
+INSERT INTO public."Практика_студента" VALUES (120, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 11, 280);
+INSERT INTO public."Практика_студента" VALUES (121, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 12, 281);
+INSERT INTO public."Практика_студента" VALUES (122, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 13, 282);
+INSERT INTO public."Практика_студента" VALUES (123, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 14, 283);
+INSERT INTO public."Практика_студента" VALUES (124, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 15, 284);
+INSERT INTO public."Практика_студента" VALUES (125, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 16, 285);
+INSERT INTO public."Практика_студента" VALUES (126, '02.11.2026 - 29.11.2026', 'г. Кострома', NULL, NULL, NULL, 17, 286);
 
 
 --
@@ -2123,7 +2387,7 @@ SELECT pg_catalog.setval('public."Должность_руков_Id_должно�
 -- Name: Доступные_места_Id_доступного_ме_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Доступные_места_Id_доступного_ме_seq"', 25, true);
+SELECT pg_catalog.setval('public."Доступные_места_Id_доступного_ме_seq"', 33, true);
 
 
 --
@@ -2144,7 +2408,14 @@ SELECT pg_catalog.setval('public."Задание_Id_задания_seq"', 171, t
 -- Name: Заявка_на_практику_Id_заявки_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Заявка_на_практику_Id_заявки_seq"', 275, true);
+SELECT pg_catalog.setval('public."Заявка_на_практику_Id_заявки_seq"', 286, true);
+
+
+--
+-- Name: Отзыв_о_практике_Id_отзыва_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Отзыв_о_практике_Id_отзыва_seq"', 125, true);
 
 
 --
@@ -2158,7 +2429,7 @@ SELECT pg_catalog.setval('public."Практика_Id_практики_seq"', 6,
 -- Name: Практика_студен_Id_практики_студ_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Практика_студен_Id_практики_студ_seq"', 115, true);
+SELECT pg_catalog.setval('public."Практика_студен_Id_практики_студ_seq"', 126, true);
 
 
 --
@@ -2319,6 +2590,22 @@ ALTER TABLE ONLY public."Направление_подготовки"
 
 ALTER TABLE ONLY public."Организация_партнер"
     ADD CONSTRAINT "Организация_партнер_pkey" PRIMARY KEY ("Наименование_организации");
+
+
+--
+-- Name: Отзыв_о_практике Отзыв_о_практик_Id_практики_студ_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Отзыв_о_практике"
+    ADD CONSTRAINT "Отзыв_о_практик_Id_практики_студ_key" UNIQUE ("Id_практики_студента");
+
+
+--
+-- Name: Отзыв_о_практике Отзыв_о_практике_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Отзыв_о_практике"
+    ADD CONSTRAINT "Отзыв_о_практике_pkey" PRIMARY KEY ("Id_отзыва");
 
 
 --
@@ -2612,8 +2899,16 @@ ALTER TABLE ONLY public."Студент"
 
 
 --
+-- Name: Отзыв_о_практике Отзыв_о_практик_Id_практики_студ_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Отзыв_о_практике"
+    ADD CONSTRAINT "Отзыв_о_практик_Id_практики_студ_fkey" FOREIGN KEY ("Id_практики_студента") REFERENCES public."Практика_студента"("Id_практики_студента");
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5UdvvNedk5gm7m1A9DL4UdfX7qdgXYupyuc4KxZUVVVse9Ba8ZLzA7OFkIK4vuk
+\unrestrict XinE0wFiv1F1PhlvmchhC6MOUburst9Md7nLc1EBKgbEcByedgqnK9uPdzz7ETb
 
